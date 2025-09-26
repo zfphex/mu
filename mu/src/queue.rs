@@ -106,7 +106,7 @@ pub fn draw(
     block()
         .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
         .title(match player.state() {
-            State::Playing | State::Finished => "Playing",
+            State::Playing => "Playing",
             State::Paused => "Paused",
             State::Stopped => "Stopped",
         })
@@ -274,7 +274,7 @@ pub fn draw(
         }
 
         let elapsed = player.elapsed().as_secs_f32();
-        let duration = player.duration().unwrap_or_default().as_secs_f32();
+        let duration = player.duration().as_secs_f32();
         dbg!(elapsed, duration);
 
         if duration != 0.0 {
@@ -321,7 +321,7 @@ pub fn draw(
             && size.height > 15
         {
             let ratio = x as f32 / size.width as f32;
-            let duration = player.duration().unwrap_or_default().as_secs_f32();
+            let duration = player.duration().as_secs_f32();
             player.seek(std::time::Duration::from_secs_f32(duration * ratio));
         }
 
