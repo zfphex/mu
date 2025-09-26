@@ -450,11 +450,15 @@ fn main() {
                 }
                 Event::Char(' ') => toggle_playback(),
                 Event::Char('C') => {
-                    clear_except_playing(&mut songs);
+                    if let Some(index) = songs.index() {
+                        let playing = songs.remove(index);
+                        songs = Index::new(vec![playing], Some(0));
+                    }
                     queue.set_index(0);
                 }
                 Event::Char('c') => {
-                    mu_player::clear(&mut songs);
+                    mu_player::stop();
+                    songs.clear();
                 }
                 Event::Char('x') => match mode {
                     Mode::Queue => {

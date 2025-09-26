@@ -2,8 +2,8 @@
 //! TODO: Describe the audio backend
 use crossbeam_queue::SegQueue;
 use decoder::Symphonia;
-use mu_core::{Index, Song};
 use mini::*;
+use mu_core::{Index, Song};
 use ringbuf::{
     traits::{Consumer, Observer, Producer, Split},
     HeapRb,
@@ -402,6 +402,10 @@ pub fn pause() {
     unsafe { PAUSED = true };
 }
 
+pub fn stop() {
+    unsafe { EVENTS.push(Event::Stop) };
+}
+
 pub fn get_volume() -> u8 {
     unsafe { (VOLUME * VOLUME_REDUCTION) as u8 }
 }
@@ -506,11 +510,6 @@ pub fn delete(songs: &mut Index<Song>, index: usize) {
             songs.select(Some(playing - 1));
         }
     };
-}
-
-pub fn clear(songs: &mut Index<Song>) {
-    unsafe { EVENTS.push(Event::Stop) };
-    songs.clear();
 }
 
 pub fn clear_except_playing(songs: &mut Index<Song>) {
