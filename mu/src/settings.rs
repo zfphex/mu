@@ -1,14 +1,14 @@
-use mu_player::*;
+use onmi::*;
 use winter::*;
 
 pub struct Settings {
-    pub devices: Vec<Device>,
+    pub devices: Vec<(String, IMMDevice)>,
     pub index: Option<usize>,
     pub current_device: String,
 }
 
 impl Settings {
-    pub fn new(devices: Vec<Device>, current_device: String) -> Self {
+    pub fn new(devices: Vec<(String, IMMDevice)>, current_device: String) -> Self {
         Self {
             index: if devices.is_empty() { None } else { Some(0) },
             devices,
@@ -19,8 +19,8 @@ impl Settings {
 
 pub fn selected(settings: &Settings) -> Option<&str> {
     if let Some(index) = settings.index {
-        if let Some(device) = settings.devices.get(index) {
-            return Some(&device.name);
+        if let Some((name, _)) = settings.devices.get(index) {
+            return Some(&name);
         }
     }
     None
@@ -46,11 +46,11 @@ pub fn down(settings: &mut Settings, amount: usize) {
 //It doesn't work on most terminals though :(
 pub fn draw(settings: &Settings, area: winter::Rect, buf: &mut winter::Buffer) {
     let mut items = Vec::new();
-    for device in &settings.devices {
-        let item = if device.name == settings.current_device {
-            lines!(">> ".dim(), &device.name)
+    for (name, _) in &settings.devices {
+        let item = if name == &settings.current_device {
+            lines!(">> ".dim(), name)
         } else {
-            lines!("   ", &device.name)
+            lines!("   ", name)
         };
         items.push(item);
     }

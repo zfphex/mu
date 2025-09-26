@@ -1,6 +1,6 @@
 use browser::Browser;
 use mu_core::{vdb::*, *};
-use mu_player::*;
+use onmi::Player;
 use playlist::{Mode as PlaylistMode, Playlist};
 use queue::Queue;
 use search::{Mode as SearchMode, Search};
@@ -50,6 +50,7 @@ fn draw(
     mouse: Option<(u16, u16)>,
     help: bool,
     mute: bool,
+    player: &mut Player,
 ) {
     let viewport = winter.viewport;
     let buf = winter.buffer();
@@ -72,7 +73,7 @@ fn draw(
     match mode {
         Mode::Browser => browser::draw(browser, area, buf, mouse),
         Mode::Settings => settings::draw(settings, area, buf),
-        Mode::Queue => queue::draw(queue, area, buf, mouse, songs, mute),
+        Mode::Queue => queue::draw(queue, area, buf, mouse, songs, mute, player),
         Mode::Playlist => *cursor = playlist::draw(playlist, area, buf, mouse),
         Mode::Search => *cursor = search::draw(search, area, buf, mouse, db),
     }
@@ -138,13 +139,13 @@ fn main() {
                 println!("   buffer <size> Set a custom ring buffer size");
                 return;
             }
-            "b" | "buffer" | "--buffer" | "--b" => match args.get(1) {
-                Some(rb_size) => unsafe { mu_player::RB_SIZE = rb_size.parse::<usize>().unwrap() },
-                None => {
-                    println!("Please enter a valid ring buffer size `buffer <size>`.");
-                    return;
-                }
-            },
+            // "b" | "buffer" | "--buffer" | "--b" => match args.get(1) {
+            //     Some(rb_size) => unsafe { mu_player::RB_SIZE = rb_size.parse::<usize>().unwrap() },
+            //     None => {
+            //         println!("Please enter a valid ring buffer size `buffer <size>`.");
+            //         return;
+            //     }
+            // },
             _ if !args.is_empty() => return println!("Invalid command."),
             _ => (),
         }
@@ -161,29 +162,44 @@ fn main() {
     }));
 
     let po = persist.output_device.clone();
-    let thread = std::thread::spawn(move || {
-        let device_list = devices();
-        let default_device = default_device();
-        let device = device_list
+    // let thread = std::thread::spawn(move || {
+    //     let device_list = devices();
+    //     let default_device = default_device();
+    //     let device = device_list
+    //         .iter()
+    //         .find(|d| d.name == po)
+    //         .unwrap_or(&default_device)
+    //         .clone();
+    //     spawn_audio_threads(device.clone());
+
+    //     Settings::new(device_list.clone(), device.name.clone())
+    // });
+
+    let mut player = Player::new();
+    let device_list = player.devices();
+
+    let device_name = if let Some(default_device) = player.default_device() {
+        let (device_name, _) = device_list
             .iter()
-            .find(|d| d.name == po)
+            .find(|(name, _)| name == &po)
             .unwrap_or(&default_device)
             .clone();
-        spawn_audio_threads(device.clone());
+        device_name
+    } else {
+        String::new()
+    };
 
-        Settings::new(device_list.clone(), device.name.clone())
-    });
+    let mut settings = Settings::new(device_list, device_name);
 
     let mut winter = Winter::new();
     let index = (!persist.queue.is_empty()).then_some(persist.index as usize);
 
-    set_volume(persist.volume);
+    player.set_volume(persist.volume);
 
     let mut songs = Index::new(persist.queue.clone(), index);
     if let Some(song) = songs.selected() {
-        play_song(song);
-        pause();
-        seek(persist.elapsed);
+        player.play_song(&song.path, false);
+        player.seek(Duration::from_secs_f32(persist.elapsed));
     }
 
     let mut db = Database::new();
@@ -205,7 +221,7 @@ fn main() {
     let mut shift;
     let mut control;
 
-    let mut settings = thread.join().unwrap();
+    // let mut settings = thread.join().unwrap();
 
     //If there are songs in the queue and the database isn't scanning, display the queue.
     if !songs.is_empty() && scan_handle.is_none() {
@@ -319,12 +335,12 @@ fn main() {
 
             //Update the time elapsed.
             persist.index = songs.index().unwrap_or(0) as u16;
-            persist.elapsed = elapsed().as_secs_f32();
+            persist.elapsed = player.elapsed().as_secs_f32();
             persist.queue = songs.to_vec();
             persist.save().unwrap();
 
             //Update the list of output devices
-            settings.devices = devices();
+            settings.devices = player.devices();
             let mut index = settings.index.unwrap_or(0);
             if index >= settings.devices.len() {
                 index = settings.devices.len().saturating_sub(1);
@@ -335,10 +351,10 @@ fn main() {
         }
 
         //Play the next song if the current is finished.
-        if mu_player::play_next() && !songs.is_empty() {
+        if player.is_finished() && !songs.is_empty() {
             songs.down();
             if let Some(song) = songs.selected() {
-                play_song(song);
+                player.play_song(&song.path, true);
             }
         }
 
@@ -359,6 +375,7 @@ fn main() {
             None,
             help,
             mute,
+            &mut player,
         );
 
         'events: {
@@ -385,6 +402,7 @@ fn main() {
                         Some((x, y)),
                         help,
                         mute,
+                        &mut player,
                     );
                 }
                 Event::ScrollUp => up!(),
@@ -448,7 +466,7 @@ fn main() {
                         playlist.search_query.push(c);
                     }
                 }
-                Event::Char(' ') => toggle_playback(),
+                Event::Char(' ') => player.toggle_playback(),
                 Event::Char('C') => {
                     if let Some(index) = songs.index() {
                         let playing = songs.remove(index);
@@ -457,17 +475,42 @@ fn main() {
                     queue.set_index(0);
                 }
                 Event::Char('c') => {
-                    mu_player::stop();
+                    player.stop();
                     songs.clear();
                 }
                 Event::Char('x') => match mode {
                     Mode::Queue => {
-                        if let Some(i) = queue.index() {
-                            mu_player::delete(&mut songs, i);
+                        if let Some(index) = queue.index() {
+                            // mu_player::delete(&mut songs, i);
+                            if songs.is_empty() {
+                                return;
+                            }
+
+                            songs.remove(index);
+
+                            if let Some(playing) = songs.index() {
+                                let len = songs.len();
+                                if len == 0 {
+                                    songs = Index::default();
+                                    player.stop();
+                                } else if index == playing && index == 0 {
+                                    songs.select(Some(0));
+                                    if let Some(song) = songs.selected() {
+                                        player.play_song(&song.path, true);
+                                    }
+                                } else if index == playing && index == len {
+                                    songs.select(Some(len - 1));
+                                    if let Some(song) = songs.selected() {
+                                        player.play_song(&song.path, true);
+                                    }
+                                } else if index < playing {
+                                    songs.select(Some(playing - 1));
+                                }
+                            };
 
                             //Sync the UI index.
                             let len = songs.len().saturating_sub(1);
-                            if i > len {
+                            if index > len {
                                 queue.set_index(len);
                             }
                         }
@@ -493,34 +536,34 @@ fn main() {
                 Event::Char('z') => {
                     if mute {
                         mute = false;
-                        set_volume(old_volume)
+                        player.set_volume(old_volume)
                     } else {
                         mute = true;
-                        old_volume = get_volume();
-                        set_volume(0);
+                        old_volume = player.volume();
+                        player.set_volume(0);
                     }
                 }
-                Event::Char('q') => seek_backward(),
-                Event::Char('e') => seek_foward(),
+                Event::Char('q') => player.seek_backward(),
+                Event::Char('e') => player.seek_forward(),
                 Event::Char('a') => {
                     songs.up();
                     if let Some(song) = songs.selected() {
-                        play_song(song);
+                        player.play_song(&song.path, true);
                     }
                 }
                 Event::Char('d') => {
                     songs.down();
                     if let Some(song) = songs.selected() {
-                        play_song(song);
+                        player.play_song(&song.path, true);
                     }
                 }
                 Event::Char('w') => {
-                    volume_up();
-                    persist.volume = get_volume();
+                    player.volume_up();
+                    persist.volume = player.volume();
                 }
                 Event::Char('s') => {
-                    volume_down();
-                    persist.volume = get_volume();
+                    player.volume_down();
+                    persist.volume = player.volume();
                 }
                 Event::Escape if mode == Mode::Playlist => {
                     if playlist.delete {
@@ -560,13 +603,13 @@ fn main() {
                 Event::Enter if mode == Mode::Queue => {
                     if let Some(i) = queue.index() {
                         songs.select(Some(i));
-                        play_song(&songs[i]);
+                        player.play_song(&songs[i].path, true);
                     }
                 }
                 Event::Enter if mode == Mode::Settings => {
                     if let Some(device) = settings::selected(&settings) {
                         let device = device.to_string();
-                        set_output_device(&device);
+                        player.set_output_device(&device);
                         settings.current_device = device.clone();
                         persist.output_device = device.clone();
                     }
@@ -610,7 +653,7 @@ fn main() {
             queue.set_index(0);
             songs.select(Some(0));
             if let Some(song) = songs.selected() {
-                play_song(song);
+                player.play_song(&song.path, true);
             }
         }
 
@@ -637,6 +680,6 @@ fn main() {
 
     persist.queue = songs.to_vec();
     persist.index = songs.index().unwrap_or(0) as u16;
-    persist.elapsed = elapsed().as_secs_f32();
+    persist.elapsed = player.elapsed().as_secs_f32();
     persist.save().unwrap();
 }

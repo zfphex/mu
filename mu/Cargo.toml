@@ -12,14 +12,16 @@ default-run = "mu"
 [features]
 profile = ["mu_core/profile"]
 simd = ["mu_core/simd"]
-info = ["mu_player/info", "mini/info"]
-warn = ["mu_player/warn", "mini/warn"]
-error = ["mu_player/error", "mini/error"]
+info = [ "mini/info"]
+warn = [ "mini/warn"]
+error = [ "mini/error"]
 
 
 [dependencies]
 rayon = "1.7.0"
-mu_player = { version = "0.3.0", path = "../mu_player" }
+# mu_player = { version = "0.3.0", path = "../mu_player" }
+# onmi = { git = "https://github.com/zfphex/onmi", version = "0.1.0" }
+onmi = { version = "0.1.0", path = "../../onmi" }
 mu_core = { version = "0.3.0", path = "../mu_core" }
 mini = { git = "https://github.com/zfphex/mini", version = "0.1.0" }
 winter = { version = "0.1.0", git = "https://github.com/zfphex/winter" }
