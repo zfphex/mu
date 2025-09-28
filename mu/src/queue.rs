@@ -275,7 +275,6 @@ pub fn draw(
 
         let elapsed = player.elapsed().as_secs_f32();
         let duration = player.duration().as_secs_f32();
-        dbg!(elapsed, duration);
 
         if duration != 0.0 {
             let seeker = format!(
