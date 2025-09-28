@@ -1,5 +1,4 @@
 use browser::Browser;
-use mini::profile;
 use mu_core::{vdb::*, *};
 use onmi::Player;
 use playlist::{Mode as PlaylistMode, Playlist};
@@ -109,6 +108,7 @@ fn play(player: &Player, song: &Song, start: bool) {
 
 fn main() {
     mini::defer_results!();
+
     let mut persist = mu_core::settings::Settings::new().unwrap();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut scan_timer = Instant::now();
@@ -188,21 +188,12 @@ fn main() {
     let volume = persist.volume;
     let queue = persist.queue.clone();
     let mut songs = Index::new(queue, index);
-    let selected = songs.selected().cloned();
-
-    //Takes ~30ms
-    let player = std::thread::spawn(move || {
-        let player = Player::new();
-        player.set_volume(volume);
-
-        if let Some(song) = selected {
-            play(&player, &song, false);
-            player.seek(Duration::from_secs_f32(elapsed));
-        }
-        player
-    });
 
     let mut winter = Winter::new();
+
+    //Takes ~30ms
+    //FIXME: Get previous output device and use that?
+    let player = std::thread::spawn(move || Player::new());
 
     //Takes ~5ms
     let db = std::thread::spawn(|| {
@@ -230,6 +221,14 @@ fn main() {
     // let mut settings = thread.join().unwrap();
     let (mut db, mut browser) = db.join().unwrap();
     let mut player = player.join().unwrap();
+    //Do not set the volume or play inside of the initialisation thread.
+    //Technically this is fine since we are not writing from anywhere else.
+    //However I would not like to manually override the thread cell.
+    player.set_volume(volume);
+    if let Some(song) = songs.selected() {
+        play(&player, song, false);
+        player.seek(Duration::from_secs_f32(elapsed));
+    }
 
     //If there are songs in the queue and the database isn't scanning, display the queue.
     if !songs.is_empty() && scan_handle.is_none() {
