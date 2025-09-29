@@ -101,7 +101,15 @@ fn path(mut path: String) -> Option<std::path::PathBuf> {
 }
 
 fn play(player: &Player, song: &Song, start: bool) {
-    if let Err(e) = player.play_song(&song.path, start) {
+    if let Err(e) = player.play_song(
+        &song.path,
+        if song.gain == 0.0 {
+            Some(0.5)
+        } else {
+            Some(song.gain)
+        },
+        start,
+    ) {
         log!("{e}");
     }
 }
