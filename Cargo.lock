@@ -374,7 +374,6 @@ version = "0.1.0"
 dependencies = [
  "symphonia",
  "wasapi",
- "winwalk",
 ]
 
 [[package]]

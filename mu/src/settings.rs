@@ -2,13 +2,13 @@ use onmi::*;
 use winter::*;
 
 pub struct Settings {
-    pub devices: Vec<(String, IMMDevice)>,
+    pub devices: Vec<Device>,
     pub index: Option<usize>,
     pub current_device: String,
 }
 
 impl Settings {
-    pub fn new(devices: Vec<(String, IMMDevice)>, current_device: String) -> Self {
+    pub fn new(devices: Vec<Device>, current_device: String) -> Self {
         Self {
             index: if devices.is_empty() { None } else { Some(0) },
             devices,
@@ -19,8 +19,8 @@ impl Settings {
 
 pub fn selected(settings: &Settings) -> Option<&str> {
     if let Some(index) = settings.index {
-        if let Some((name, _)) = settings.devices.get(index) {
-            return Some(&name);
+        if let Some(device) = settings.devices.get(index) {
+            return Some(&device.name);
         }
     }
     None
@@ -46,11 +46,11 @@ pub fn down(settings: &mut Settings, amount: usize) {
 //It doesn't work on most terminals though :(
 pub fn draw(settings: &Settings, area: winter::Rect, buf: &mut winter::Buffer) {
     let mut items = Vec::new();
-    for (name, _) in &settings.devices {
-        let item = if name == &settings.current_device {
-            lines!(">> ".dim(), name)
+    for device in &settings.devices {
+        let item = if device.name == settings.current_device {
+            lines!(">> ".dim(), &device.name)
         } else {
-            lines!("   ", name)
+            lines!("   ", &device.name)
         };
         items.push(item);
     }

@@ -1,6 +1,6 @@
 use browser::Browser;
 use mu_core::{vdb::*, *};
-use onmi::Player;
+use onmi::{OutputDevices, Player};
 use playlist::{Mode as PlaylistMode, Playlist};
 use queue::Queue;
 use search::{Mode as SearchMode, Search};
@@ -168,21 +168,6 @@ fn main() {
         std::process::exit(1);
     }));
 
-    let prev_output = persist.output_device.clone();
-    let device_list = onmi::devices();
-    let device_name = if let Some(default_device) = onmi::default_device() {
-        let (device_name, _) = device_list
-            .iter()
-            .find(|(name, _)| name == &prev_output)
-            .unwrap_or(&default_device)
-            .clone();
-        device_name
-    } else {
-        String::new()
-    };
-
-    let mut settings = Settings::new(device_list, device_name);
-
     let index = (!persist.queue.is_empty()).then_some(persist.index as usize);
     let elapsed = persist.elapsed;
     let volume = persist.volume;
@@ -191,9 +176,16 @@ fn main() {
 
     let mut winter = Winter::new();
 
-    //Takes ~30ms
-    //FIXME: Get previous output device and use that?
-    let player = std::thread::spawn(move || Player::new());
+    let outputs = OutputDevices::new();
+    let devices = outputs.devices();
+    let device = devices
+        .iter()
+        .find(|device| device.name == persist.output_device)
+        .unwrap_or(&outputs.default_device())
+        .clone();
+    let mut player = Player::new(device.clone());
+
+    let mut settings = Settings::new(devices, device.name);
 
     //Takes ~5ms
     let db = std::thread::spawn(|| {
@@ -219,11 +211,14 @@ fn main() {
     let mut control;
 
     // let mut settings = thread.join().unwrap();
+    // let mut player = player.join().unwrap();
+
     let (mut db, mut browser) = db.join().unwrap();
-    let mut player = player.join().unwrap();
+
     //Do not set the volume or play inside of the initialisation thread.
     //Technically this is fine since we are not writing from anywhere else.
     //However I would not like to manually override the thread cell.
+
     player.set_volume(volume);
     if let Some(song) = songs.selected() {
         play(&player, song, false);
@@ -347,7 +342,7 @@ fn main() {
             persist.save().unwrap();
 
             //Update the list of output devices
-            settings.devices = onmi::devices();
+            settings.devices = outputs.devices();
             let mut index = settings.index.unwrap_or(0);
             if index >= settings.devices.len() {
                 index = settings.devices.len().saturating_sub(1);
