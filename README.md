@@ -18,6 +18,7 @@
 - Mouse support
 
 ## 📦 Installation
+> [!TIP]
 > I recommend a font with ligatures for the best experience.
 
 Download the latest [release](https://github.com/zfphex/mu/releases/latest) and add some music.
@@ -28,7 +29,8 @@ mu add ~/Music
 
 ### Building from Source
 
-> Linux is currently unsupported.
+> [!WARNING]
+> Linux and MacOS are currently unsupported.
 
 ```
 git clone https://github.com/zfphex/mu
