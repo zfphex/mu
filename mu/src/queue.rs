@@ -1,6 +1,7 @@
 use crate::{ALBUM, ARTIST, NUMBER, SEEKER, TITLE};
 use core::ops::Range;
 use mu_core::{log, Index, Song};
+use onmi::{Player, State};
 use winter::*;
 
 pub struct Queue {
@@ -87,6 +88,7 @@ pub fn draw(
     mouse: Option<(u16, u16)>,
     songs: &mut Index<Song>,
     mute: bool,
+    player: &mut Player,
 ) {
     let fill = viewport.height.saturating_sub(3 + 3);
     let area = layout(
@@ -103,12 +105,10 @@ pub fn draw(
     //Header
     block()
         .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
-        .title(if songs.is_empty() {
-            "Stopped"
-        } else if mu_player::is_paused() {
-            "Paused"
-        } else {
-            "Playing"
+        .title(match player.state() {
+            State::Playing => "Playing",
+            State::Paused => "Paused",
+            State::Stopped => "Stopped",
         })
         .title_margin(1)
         .draw(area[0], buf);
@@ -166,7 +166,7 @@ pub fn draw(
     let volume: Line<'_> = if mute {
         "Mute─╮".into()
     } else {
-        text!("Vol: {}%─╮", mu_player::get_volume()).into()
+        text!("Vol: {}%─╮", player.volume()).into()
     };
     volume.align(Right).draw(area[0], buf);
 
@@ -273,8 +273,8 @@ pub fn draw(
                 .draw(area[2], buf);
         }
 
-        let elapsed = mu_player::elapsed().as_secs_f32();
-        let duration = mu_player::duration().as_secs_f32();
+        let elapsed = player.elapsed().as_secs_f32();
+        let duration = player.duration().as_secs_f32();
 
         if duration != 0.0 {
             let seeker = format!(
@@ -320,8 +320,8 @@ pub fn draw(
             && size.height > 15
         {
             let ratio = x as f32 / size.width as f32;
-            let duration = mu_player::duration().as_secs_f32();
-            mu_player::seek(duration * ratio);
+            let duration = player.duration().as_secs_f32();
+            player.seek(std::time::Duration::from_secs_f32(duration * ratio));
         }
 
         //Mouse support for the queue.

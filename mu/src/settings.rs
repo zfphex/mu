@@ -1,4 +1,4 @@
-use mu_player::*;
+use onmi::*;
 use winter::*;
 
 pub struct Settings {
