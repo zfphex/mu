@@ -22,7 +22,7 @@ crossbeam-queue = "0.3.1"
 mu_core = { version = "0.3.0", path = "../mu_core" }
 mini = { git = "https://github.com/zfphex/mini", version = "0.1.0" }
 ringbuf = "0.4.1"
-symphonia = { git = "https://github.com/pdeljanov/Symphonia", default-features = false, features = [
+symphonia = { version = "0.5.5", default-features = false, features = [
     "flac",
     "mp3",
     "ogg",
