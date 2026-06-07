@@ -17,7 +17,6 @@ error = ["mini/error"]
 simd = ["onmi/simd"]
 
 [dependencies]
-rayon = "1.7.0"
 mu_core = { version = "0.4.0", path = "../mu_core" }
 mini = { git = "https://github.com/zfphex/mini", version = "0.1.0" }
 winter = { version = "0.1.0", git = "https://github.com/zfphex/winter" }

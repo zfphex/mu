@@ -80,7 +80,6 @@ dependencies = [
  "mini",
  "mu_core",
  "onmi",
- "rayon",
  "winter",
 ]
 
