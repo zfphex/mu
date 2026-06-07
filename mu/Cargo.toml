@@ -11,10 +11,10 @@ default-run = "mu"
 
 [features]
 profile = ["mu_core/profile"]
-info = [ "mini/info"]
-warn = [ "mini/warn"]
-error = [ "mini/error"]
-
+info = ["mini/info"]
+warn = ["mini/warn"]
+error = ["mini/error"]
+simd = ["onmi/simd"]
 
 [dependencies]
 rayon = "1.7.0"
@@ -23,4 +23,4 @@ mini = { git = "https://github.com/zfphex/mini", version = "0.1.0" }
 winter = { version = "0.1.0", git = "https://github.com/zfphex/winter" }
 # winter = { version = "0.1.0", path = "../../winter" }
 # onmi = { git = "https://github.com/zfphex/onmi", version = "0.1.0" }
-onmi = { version = "0.1.0", path = "../../onmi" }
+onmi = { version = "0.1.0", path = "../../onmi"}
