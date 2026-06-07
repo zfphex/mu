@@ -186,11 +186,9 @@ fn main() {
 
     let outputs = OutputDevices::new();
     let devices = outputs.devices();
-    let device = devices
-        .iter()
-        .find(|device| device.name == persist.output_device)
-        .unwrap_or(&outputs.default_device())
-        .clone();
+    let device = outputs
+        .find(&persist.output_device)
+        .unwrap_or(outputs.default_device());
     let mut player = Player::new(device.clone());
 
     let mut settings = Settings::new(devices, device.name);
@@ -619,7 +617,9 @@ fn main() {
                 Event::Enter if mode == Mode::Settings => {
                     if let Some(device) = settings::selected(&settings) {
                         let device = device.to_string();
-                        player.set_output_device(&device);
+                        let new_device =
+                            settings.devices.iter().find(|d| d.name == device).unwrap();
+                        player.set_output_device(new_device.clone());
                         settings.current_device = device.clone();
                         persist.output_device = device.clone();
                     }
