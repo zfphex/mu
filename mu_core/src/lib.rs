@@ -21,11 +21,9 @@ pub use crate::{
     db::{Album, Artist, Song},
     playlist::Playlist,
 };
-pub use flac_decoder::*;
 pub use index::*;
 
 pub mod db;
-pub mod flac_decoder;
 pub mod index;
 pub mod log;
 pub mod playlist;
@@ -42,6 +40,7 @@ pub fn escape(input: &'_ str) -> Cow<'_, str> {
     }
 }
 
+//TODO: I'm not sure why I wrote this three years ago, but this code HAS TO GO.
 static mut MU: MaybeUninit<PathBuf> = MaybeUninit::uninit();
 static mut SETTINGS: MaybeUninit<PathBuf> = MaybeUninit::uninit();
 static mut DATABASE: MaybeUninit<PathBuf> = MaybeUninit::uninit();

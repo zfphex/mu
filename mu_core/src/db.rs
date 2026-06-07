@@ -94,16 +94,12 @@ impl Deserialize for Vec<Song> {
     }
 }
 
-pub const UNKNOWN_TITLE: &str = "Unknown Title";
-pub const UNKNOWN_ALBUM: &str = "Unknown Album";
-pub const UNKNOWN_ARTIST: &str = "Unknown Artist";
-
 impl Song {
     pub fn new() -> Self {
         Self {
-            title: UNKNOWN_TITLE.to_string(),
-            album: UNKNOWN_ALBUM.to_string(),
-            artist: UNKNOWN_ARTIST.to_string(),
+            title: "Unknown Title".to_string(),
+            album: "Unknown Album".to_string(),
+            artist: "Unknown Artist".to_string(),
             disc_number: 1,
             track_number: 1,
             path: String::new(),
@@ -138,107 +134,19 @@ impl TryFrom<&Path> for Song {
     type Error = String;
 
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
-        let extension = path.extension().ok_or("Path is not audio")?;
-
-        if extension != "flac" {
-            use symphonia::{
-                core::{formats::FormatOptions, io::*, meta::*, probe::Hint},
-                default::get_probe,
-            };
-
-            let file = match File::open(path) {
-                Ok(file) => file,
-                Err(err) => return Err(format!("Error: ({err}) @ {}", path.to_string_lossy())),
-            };
-
-            let mss = MediaSourceStream::new(Box::new(file), MediaSourceStreamOptions::default());
-
-            let mut probe = match get_probe().format(
-                &Hint::new(),
-                mss,
-                &FormatOptions::default(),
-                &MetadataOptions {
-                    limit_visual_bytes: Limit::Maximum(1),
-                    ..Default::default()
-                },
-            ) {
-                Ok(probe) => probe,
-                Err(err) => return Err(format!("Error: ({err}) @ {}", path.to_string_lossy()))?,
-            };
-
-            let mut title = String::from("Unknown Title");
-            let mut album = String::from("Unknown Album");
-            let mut artist = String::from("Unknown Artist");
-            let mut track_number = 1;
-            let mut disc_number = 1;
-            let mut gain = 0.0;
-
-            let mut metadata_revision = probe.format.metadata();
-            let mut metadata = probe.metadata.get();
-            let mut m = None;
-
-            if let Some(metadata) = metadata_revision.skip_to_latest() {
-                m = Some(metadata);
-            };
-
-            if let Some(metadata) = &mut metadata {
-                if let Some(metadata) = metadata.skip_to_latest() {
-                    m = Some(metadata)
-                };
-            }
-
-            if let Some(metadata) = m {
-                for tag in metadata.tags() {
-                    if let Some(std_key) = tag.std_key {
-                        match std_key {
-                            StandardTagKey::AlbumArtist => artist = tag.value.to_string(),
-                            StandardTagKey::Artist if artist == "Unknown Artist" => {
-                                artist = tag.value.to_string()
-                            }
-                            StandardTagKey::Album => album = tag.value.to_string(),
-                            StandardTagKey::TrackTitle => title = tag.value.to_string(),
-                            StandardTagKey::TrackNumber => {
-                                let num = tag.value.to_string();
-                                if let Some((num, _)) = num.split_once('/') {
-                                    track_number = num.parse().unwrap_or(1);
-                                } else {
-                                    track_number = num.parse().unwrap_or(1);
-                                }
-                            }
-                            StandardTagKey::DiscNumber => {
-                                let num = tag.value.to_string();
-                                if let Some((num, _)) = num.split_once('/') {
-                                    disc_number = num.parse().unwrap_or(1);
-                                } else {
-                                    disc_number = num.parse().unwrap_or(1);
-                                }
-                            }
-                            StandardTagKey::ReplayGainTrackGain => {
-                                let tag = tag.value.to_string();
-                                let (_, value) =
-                                    tag.split_once(' ').ok_or("Invalid replay gain.")?;
-                                let db = value.parse().unwrap_or(0.0);
-                                gain = 10.0f32.powf(db / 20.0);
-                            }
-                            _ => (),
-                        }
-                    }
-                }
-            }
-
-            Ok(Song {
-                title,
-                album,
-                artist,
-                disc_number,
-                track_number,
-                path: path.to_str().ok_or("Invalid UTF-8 in path.")?.to_string(),
-                gain,
-            })
-        } else {
-            read_metadata(path)
-                .map_err(|err| format!("Error: ({err}) @ {}", path.to_string_lossy()))
-        }
+        //TODO: Two different song implementations?
+        //I feel like the decoder stuff belongs in the playback library.
+        //But something just feels weird about this.
+        let osong = onmi::metadata(path, false)?;
+        Ok(Song {
+            title: osong.title,
+            album: osong.album,
+            artist: osong.artist,
+            disc_number: osong.disc_number,
+            track_number: osong.track_number,
+            path: osong.path,
+            gain: osong.gain,
+        })
     }
 }
 
