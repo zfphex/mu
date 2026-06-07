@@ -321,7 +321,7 @@ pub fn draw(
         {
             let ratio = x as f32 / size.width as f32;
             let duration = player.duration().as_secs_f32();
-            player.seek(std::time::Duration::from_secs_f32(duration * ratio));
+            player.seek_to(std::time::Duration::from_secs_f32(duration * ratio));
         }
 
         //Mouse support for the queue.

@@ -230,7 +230,7 @@ fn main() {
     player.set_volume(volume);
     if let Some(song) = songs.selected() {
         play(&player, song, false);
-        player.seek(Duration::from_secs_f32(elapsed));
+        player.seek_to(Duration::from_secs_f32(elapsed));
     }
 
     //If there are songs in the queue and the database isn't scanning, display the queue.
@@ -553,8 +553,8 @@ fn main() {
                         player.set_volume(0);
                     }
                 }
-                Event::Char('q') => player.seek_backward(),
-                Event::Char('e') => player.seek_forward(),
+                Event::Char('q') => player.seek_backward(10.0),
+                Event::Char('e') => player.seek_forward(10.0),
                 Event::Char('a') => {
                     songs.up();
                     if let Some(song) = songs.selected() {
