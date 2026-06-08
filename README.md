@@ -35,7 +35,7 @@ cargo install --path mu --profile dist --features "simd"
 mu
 ```
 
-## ⌨️ Key Bindings
+## Key Bindings
 
 | Command                     | Key               |
 | --------------------------- | ----------------- |
