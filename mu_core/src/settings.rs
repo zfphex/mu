@@ -83,12 +83,12 @@ impl Default for Settings {
 }
 
 impl Settings {
-    pub fn new() -> Result<Settings, std::io::Error> {
+    pub fn new(settings_path: &Path) -> Result<Settings, std::io::Error> {
         let mut file = File::options()
             .read(true)
             .write(true)
             .create(true)
-            .open(settings_path())
+            .open(settings_path)
             .unwrap();
         let mut string = String::new();
         file.read_to_string(&mut string)?;
@@ -113,6 +113,7 @@ mod tests {
 
     #[test]
     fn settings() {
-        Settings::new().unwrap();
+        let config = config_paths();
+        Settings::new(&config.settings).unwrap();
     }
 }

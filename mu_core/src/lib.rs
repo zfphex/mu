@@ -12,26 +12,57 @@ use std::{
     env,
     error::Error,
     fs::{self},
-    mem::MaybeUninit,
     path::{Path, PathBuf},
-    sync::Once,
 };
 
 pub use crate::{
     db::{Album, Artist, Song},
     playlist::Playlist,
 };
-pub use flac_decoder::*;
 pub use index::*;
 
 pub mod db;
-pub mod flac_decoder;
 pub mod index;
 pub mod log;
 pub mod playlist;
 pub mod settings;
 pub mod strsim;
 pub mod vdb;
+
+pub struct Config {
+    pub mu: PathBuf,
+    pub settings: PathBuf,
+    pub database: PathBuf,
+}
+
+pub fn config_paths() -> Config {
+    let mu = if cfg!(windows) {
+        PathBuf::from(&env::var("APPDATA").unwrap())
+    } else {
+        PathBuf::from(&env::var("HOME").unwrap()).join(".config")
+    }
+    .join("mu");
+
+    if !mu.exists() {
+        fs::create_dir_all(&mu).unwrap();
+    }
+
+    let settings = mu.join("settings.db");
+
+    //Backwards compatibility for older versions of mu
+    let old_db = mu.join("mu_new.db");
+    let database = mu.join("mu.db");
+
+    if old_db.exists() {
+        fs::rename(old_db, &database).unwrap();
+    }
+
+    Config {
+        mu,
+        settings,
+        database,
+    }
+}
 
 ///Escape potentially problematic strings.
 pub fn escape(input: &'_ str) -> Cow<'_, str> {
@@ -42,60 +73,8 @@ pub fn escape(input: &'_ str) -> Cow<'_, str> {
     }
 }
 
-static mut MU: MaybeUninit<PathBuf> = MaybeUninit::uninit();
-static mut SETTINGS: MaybeUninit<PathBuf> = MaybeUninit::uninit();
-static mut DATABASE: MaybeUninit<PathBuf> = MaybeUninit::uninit();
-static mut ONCE: Once = Once::new();
-
 pub fn user_profile_directory() -> Option<String> {
     env::var("USERPROFILE").ok()
-}
-
-#[inline(always)]
-fn once() {
-    unsafe {
-        ONCE.call_once(|| {
-            let mu = if cfg!(windows) {
-                PathBuf::from(&env::var("APPDATA").unwrap())
-            } else {
-                PathBuf::from(&env::var("HOME").unwrap()).join(".config")
-            }
-            .join("mu");
-
-            if !mu.exists() {
-                fs::create_dir_all(&mu).unwrap();
-            }
-
-            let settings = mu.join("settings.db");
-
-            //Backwards compatibility for older versions of mu
-            let old_db = mu.join("mu_new.db");
-            let db = mu.join("mu.db");
-
-            if old_db.exists() {
-                fs::rename(old_db, &db).unwrap();
-            }
-
-            MU = MaybeUninit::new(mu);
-            SETTINGS = MaybeUninit::new(settings);
-            DATABASE = MaybeUninit::new(db);
-        });
-    }
-}
-
-pub fn mu_path() -> &'static Path {
-    once();
-    unsafe { MU.assume_init_ref() }
-}
-
-pub fn settings_path() -> &'static Path {
-    once();
-    unsafe { SETTINGS.assume_init_ref() }
-}
-
-pub fn database_path() -> &'static Path {
-    once();
-    unsafe { DATABASE.assume_init_ref() }
 }
 
 trait Serialize {

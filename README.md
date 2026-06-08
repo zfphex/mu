@@ -6,18 +6,14 @@
       <img src="https://raw.githubusercontent.com/zfphex/mu/refs/heads/main/media/mu.webp">
 </div>
 
-## ⚠️ Warning
-
-- This is a place where I test new ideas. I would not recommend using this as your music player.
-
-## ✨ Features
+## Features
 - Easy to use
 - Plays FLAC, MP3 and OGG
 - Fuzzy search
 - Vim-style key bindings
 - Mouse support
 
-## 📦 Installation
+##  Installation
 > [!TIP]
 > I recommend a font with ligatures for the best experience.
 
@@ -39,7 +35,7 @@ cargo install --path mu --profile dist --features "simd"
 mu
 ```
 
-## ⌨️ Key Bindings
+## Key Bindings
 
 | Command                     | Key               |
 | --------------------------- | ----------------- |
@@ -78,7 +74,7 @@ mu
 | Update database             | `U`               |
 | Quit player                 | `Ctrl + C`        |
 
-## ⚒️ Troubleshooting
+## Troubleshooting
 
 - mu doesn't start after an update.
 

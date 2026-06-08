@@ -2,25 +2,24 @@
 //!
 //! Each playlist has it's own file.
 //!
-use crate::{escape, mu_path, Deserialize, Index, Serialize, Song};
+use crate::{escape, Deserialize, Index, Serialize, Song};
 use std::{
     fs::{self},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Playlist {
     name: String,
     path: PathBuf,
-
     pub songs: Index<Song>,
 }
 
 impl Playlist {
-    pub fn new(name: &str, songs: Vec<Song>) -> Self {
+    pub fn new(name: &str, songs: Vec<Song>, config_path: &Path) -> Self {
         let name = escape(name);
         Self {
-            path: mu_path().join(format!("{name}.playlist")),
+            path: config_path.join(format!("{name}.playlist")),
             name: String::from(name),
             songs: Index::from(songs),
         }
@@ -63,8 +62,8 @@ impl Deserialize for Playlist {
     }
 }
 
-pub fn playlists() -> Vec<Playlist> {
-    winwalk::walkdir(mu_path().to_str().unwrap(), 0)
+pub fn playlists(config_path: &Path) -> Vec<Playlist> {
+    winwalk::walkdir(config_path.to_str().unwrap(), 0)
         .into_iter()
         .flatten()
         .filter(|entry| match entry.extension() {
@@ -81,10 +80,12 @@ pub fn playlists() -> Vec<Playlist> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::*;
 
     #[test]
     fn playlist() {
-        let playlist = Playlist::new("name", vec![Song::example(), Song::example()]);
+        let config = config_paths();
+        let playlist = Playlist::new("name", vec![Song::example(), Song::example()], &config.mu);
         let string = playlist.serialize();
         let p = Playlist::deserialize(&string).unwrap();
         assert_eq!(playlist, p);
@@ -92,6 +93,7 @@ mod tests {
 
     #[test]
     fn save() {
+        let config = config_paths();
         let playlist = Playlist::new(
             "test",
             vec![
@@ -106,9 +108,10 @@ mod tests {
                 Song::example(),
                 Song::example(),
             ],
+            &config.mu,
         );
         playlist.save().unwrap();
-        let playlists = playlists();
+        let playlists = playlists(&config.mu);
         assert!(!playlists.is_empty());
         playlist.delete();
     }

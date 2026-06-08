@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["mu", "mu_core", "mu_player"]
+members = ["mu", "mu_core"]
 
 [profile.release]
 debug = true

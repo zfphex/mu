@@ -1,6 +1,6 @@
 use crate::{ALBUM, ARTIST, TITLE};
 use mu_core::{Index, Song};
-use std::{error::Error, mem};
+use std::{error::Error, mem, path::Path};
 use winter::*;
 
 #[derive(PartialEq, Eq)]
@@ -22,10 +22,10 @@ pub struct Playlist {
 }
 
 impl Playlist {
-    pub fn new() -> std::result::Result<Self, Box<dyn Error>> {
+    pub fn new(config_path: &Path) -> std::result::Result<Self, Box<dyn Error>> {
         Ok(Self {
             mode: Mode::Playlist,
-            lists: Index::from(mu_core::playlist::playlists()),
+            lists: Index::from(mu_core::playlist::playlists(config_path)),
             song_buffer: Vec::new(),
             changed: false,
             search_query: String::new(),
@@ -127,7 +127,7 @@ pub fn on_enter_shift(playlist: &mut Playlist) {
     }
 }
 
-pub fn on_enter(playlist: &mut Playlist, songs: &mut Index<Song>, shift: bool) {
+pub fn on_enter(playlist: &mut Playlist, songs: &mut Index<Song>, shift: bool, config_path: &Path) {
     if shift {
         return on_enter_shift(playlist);
     }
@@ -170,7 +170,9 @@ pub fn on_enter(playlist: &mut Playlist, songs: &mut Index<Song>, shift: bool) {
             } else {
                 //If the playlist does not exist create it.
                 let len = playlist.lists.len();
-                playlist.lists.push(mu_core::Playlist::new(&name, songs));
+                playlist
+                    .lists
+                    .push(mu_core::Playlist::new(&name, songs, config_path));
                 playlist.lists[len].save().unwrap();
                 playlist.lists.select(Some(len));
             }
