@@ -52,16 +52,15 @@ fn draw(
     mute: bool,
     player: &mut Player,
 ) {
-    let viewport = winter.viewport;
+    let wv = winter.viewport;
     let buf = winter.buffer();
-    let area = if let Some(msg) = log::last_message() {
+    let (viewport, log) = if log::last_message().is_some() {
         let length = 3;
-        let fill = viewport.height.saturating_sub(length);
-        let area = layout(viewport, Vertical, &[Length(fill), Length(length)]);
-        lines!(msg).block(block()).draw(area[1], buf);
-        area[0]
+        let fill = wv.height.saturating_sub(length);
+        let area = layout(wv, Vertical, &[Length(fill), Length(length)]);
+        (area[0], area[1])
     } else {
-        viewport
+        (wv, Rect::default())
     };
 
     //Hide the cursor when it's not needed.
@@ -71,15 +70,20 @@ fn draw(
     }
 
     match mode {
-        Mode::Browser => browser::draw(browser, area, buf, mouse),
-        Mode::Settings => settings::draw(settings, area, buf),
-        Mode::Queue => queue::draw(queue, area, buf, mouse, songs, mute, player),
-        Mode::Playlist => *cursor = playlist::draw(playlist, area, buf, mouse),
-        Mode::Search => *cursor = search::draw(search, area, buf, mouse, db),
+        Mode::Browser => browser::draw(browser, viewport, buf, mouse),
+        Mode::Settings => settings::draw(settings, viewport, buf),
+        //Use the full viewport so the queue isn't clipped by the log.
+        Mode::Queue => queue::draw(queue, wv, buf, mouse, songs, mute, player),
+        Mode::Playlist => *cursor = playlist::draw(playlist, viewport, buf, mouse),
+        Mode::Search => *cursor = search::draw(search, viewport, buf, mouse, db),
+    }
+
+    if let Some(msg) = log::last_message() {
+        lines!(msg).block(block()).draw(log, buf);
     }
 
     if help {
-        if let Ok(area) = area.inner(8, 6) {
+        if let Ok(area) = viewport.inner(8, 6) {
             let widths = [Constraint::Percentage(50), Constraint::Percentage(50)];
 
             //TODO: This is hard to read because the gap between command and key is large.
