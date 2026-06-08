@@ -157,18 +157,18 @@ pub enum ScanResult {
     FileInUse,
 }
 
-pub fn reset() -> Result<(), Box<dyn Error>> {
-    fs::remove_file(settings_path())?;
-    if database_path().exists() {
-        fs::remove_file(database_path())?;
+pub fn reset(config: &Config) -> Result<(), Box<dyn Error>> {
+    fs::remove_file(&config.settings)?;
+    if config.database.exists() {
+        fs::remove_file(&config.database)?;
     }
     Ok(())
 }
 
-pub fn create(path: &str) -> JoinHandle<ScanResult> {
-    let path = path.to_string();
+pub fn create(music_dir: &str, config_database_path: PathBuf) -> JoinHandle<ScanResult> {
+    let path = music_dir.to_string();
     thread::spawn(move || {
-        let mut db_path = database_path().to_path_buf();
+        let mut db_path = config_database_path.to_path_buf();
         db_path.pop();
         db_path.push("temp.db");
 
@@ -207,7 +207,7 @@ pub fn create(path: &str) -> JoinHandle<ScanResult> {
                 writer.flush().unwrap();
 
                 //Remove old database and replace it with new.
-                fs::rename(db_path, database_path()).unwrap();
+                fs::rename(db_path, config_database_path).unwrap();
 
                 // let _db = vdb::create().unwrap();
 
@@ -245,13 +245,14 @@ mod tests {
 
     #[test]
     fn database() {
-        let handle = create("D:\\OneDrive\\Music");
+        let config = config_paths();
+        let handle = create("D:\\OneDrive\\Music", config.database.clone());
 
         while !handle.is_finished() {
             thread::sleep(Duration::from_millis(1));
         }
         handle.join().unwrap();
-        let bytes = fs::read(database_path()).unwrap();
+        let bytes = fs::read(&config.database).unwrap();
         let db: Result<Vec<Song>, Box<dyn Error>> = unsafe { from_utf8_unchecked(&bytes) }
             .lines()
             .map(Song::deserialize)

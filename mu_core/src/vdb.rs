@@ -5,17 +5,18 @@
 //! Also contains code for querying artists, albums and songs.
 //!
 use crate::db::{Album, Song};
-use crate::{database_path, strsim, Deserialize};
-use std::collections::BTreeMap;
-use std::{cmp::Ordering, fs, str::from_utf8_unchecked};
+use crate::{strsim, Deserialize};
+use std::{cmp::Ordering, collections::BTreeMap, fs, path::Path, str::from_utf8_unchecked};
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::*;
 
     #[test]
     fn db() {
-        let db = Database::new();
+        let config = config_paths();
+        let db = Database::new(&config.database);
         dbg!(db.artists());
         dbg!(db.search("test"));
     }
@@ -56,8 +57,8 @@ pub struct Database {
 
 impl Database {
     ///Read the database from disk and load it into memory.
-    pub fn new() -> Self {
-        let bytes = match fs::read(database_path()) {
+    pub fn new(database_path: &Path) -> Self {
+        let bytes = match fs::read(database_path) {
             Ok(bytes) => bytes,
             Err(error) => match error.kind() {
                 std::io::ErrorKind::NotFound => Vec::new(),

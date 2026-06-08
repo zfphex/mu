@@ -121,7 +121,8 @@ fn play(player: &Player, song: &Song, start: bool) {
 fn main() {
     mini::defer_results!();
 
-    let mut persist = mu_core::settings::Settings::new().unwrap();
+    let config = config_paths();
+    let mut persist = mu_core::settings::Settings::new(&config.settings).unwrap();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut scan_timer = Instant::now();
     let mut scan_handle = None;
@@ -136,14 +137,15 @@ fn main() {
                 match path(args[1].clone()) {
                     Some(path) if path.exists() => {
                         persist.music_folder = path.to_string_lossy().to_string();
-                        scan_handle = Some(db::create(&persist.music_folder));
+                        scan_handle =
+                            Some(db::create(&persist.music_folder, config.database.clone()));
                         scan_timer = Instant::now();
                     }
                     _ => return println!("Invalid path."),
                 }
             }
             "reset" => {
-                return match mu_core::db::reset() {
+                return match mu_core::db::reset(&config) {
                     Ok(_) => println!("Database reset!"),
                     Err(e) => println!("Failed to reset database! {e}"),
                 };
@@ -158,13 +160,6 @@ fn main() {
                 println!("   buffer <size> Set a custom ring buffer size");
                 return;
             }
-            // "b" | "buffer" | "--buffer" | "--b" => match args.get(1) {
-            //     Some(rb_size) => unsafe { mu_player::RB_SIZE = rb_size.parse::<usize>().unwrap() },
-            //     None => {
-            //         println!("Please enter a valid ring buffer size `buffer <size>`.");
-            //         return;
-            //     }
-            // },
             _ if !args.is_empty() => return println!("Invalid command."),
             _ => (),
         }
@@ -198,15 +193,16 @@ fn main() {
     let mut settings = Settings::new(devices, device.name);
 
     //Takes ~5ms
-    let db = std::thread::spawn(|| {
-        let db = Database::new();
+    let db_path = config.database.clone();
+    let db = std::thread::spawn(move || {
+        let db = Database::new(&db_path);
         let browser = Browser::new(&db);
         (db, browser)
     });
 
     //Everything here initialises quickly.
     let mut queue = Queue::new(index.unwrap_or(0));
-    let mut playlist = Playlist::new().unwrap();
+    let mut playlist = Playlist::new(&config.mu).unwrap();
     let mut search = Search::new();
     let mut mode = Mode::Browser;
     let mut last_tick = Instant::now();
@@ -292,7 +288,7 @@ fn main() {
                 let handle = scan_handle.take().unwrap();
                 let result = handle.join().unwrap();
 
-                db = Database::new();
+                db = Database::new(&config.database);
                 log::clear();
 
                 match result {
@@ -313,7 +309,7 @@ fn main() {
                             db.len.saturating_sub(len)
                         );
 
-                        let path = mu_path().join("mu.log");
+                        let path = config.mu.join("mu.log");
                         let errors = errors.join("\n");
                         fs::write(path, errors).unwrap();
                     }
@@ -539,9 +535,10 @@ fn main() {
                         if persist.music_folder.is_empty() {
                             mu_core::log!("Nothing to scan! Add a folder with 'mu add /path/'");
                         } else {
-                            scan_handle = Some(db::create(&persist.music_folder));
+                            scan_handle =
+                                Some(db::create(&persist.music_folder, config.database.clone()));
                             scan_timer = Instant::now();
-                            playlist.lists = Index::from(mu_core::playlist::playlists());
+                            playlist.lists = Index::from(mu_core::playlist::playlists(&config.mu));
                         }
                     }
                 }
@@ -629,7 +626,7 @@ fn main() {
                     }
                 }
                 Event::Enter if mode == Mode::Playlist => {
-                    playlist::on_enter(&mut playlist, &mut songs, shift);
+                    playlist::on_enter(&mut playlist, &mut songs, shift, &config.mu);
                 }
                 Event::Enter if mode == Mode::Search && shift => {
                     if let Some(songs) = search::on_enter(&mut search, &db) {
