@@ -120,6 +120,7 @@ fn play(player: &Player, song: &Song, start: bool) {
 
 fn main() {
     mini::defer_results!();
+    mini::profile!();
 
     let config = config_paths();
     let mut persist = mu_core::settings::Settings::new(&config.settings).unwrap();
@@ -216,20 +217,19 @@ fn main() {
     let mut shift;
     let mut control;
 
-    // let mut settings = thread.join().unwrap();
-    // let mut player = player.join().unwrap();
-
-    let (mut db, mut browser) = db.join().unwrap();
-
     //Do not set the volume or play inside of the initialisation thread.
     //Technically this is fine since we are not writing from anywhere else.
     //However I would not like to manually override the thread cell.
-
+    //TODO: In order to defer creating songs to a different thread.
+    //I will need to rewrite onmi to use Arc<SharedState> rather than
+    //the mismash of manual thread safety stuff.
     player.set_volume(volume);
     if let Some(song) = songs.selected() {
         play(&player, song, false);
         player.seek_to(Duration::from_secs_f32(elapsed));
     }
+
+    let (mut db, mut browser) = db.join().unwrap();
 
     //If there are songs in the queue and the database isn't scanning, display the queue.
     if !songs.is_empty() && scan_handle.is_none() {
