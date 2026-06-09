@@ -158,7 +158,6 @@ fn main() {
                 println!("Options");
                 println!("   add    <path> Add music to the library");
                 println!("   reset         Reset the database");
-                println!("   buffer <size> Set a custom ring buffer size");
                 return;
             }
             _ if !args.is_empty() => return println!("Invalid command."),
