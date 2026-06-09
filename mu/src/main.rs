@@ -104,7 +104,7 @@ fn path(mut path: String) -> Option<std::path::PathBuf> {
     fs::canonicalize(path).ok()
 }
 
-fn play(player: &Player, song: &Song, start: bool) {
+fn play(player: &mut Player, song: &Song, start: bool) {
     if let Err(e) = player.play_song(
         &song.path,
         if song.gain == 0.0 {
@@ -224,7 +224,7 @@ fn main() {
     //the mismash of manual thread safety stuff.
     player.set_volume(volume);
     if let Some(song) = songs.selected() {
-        play(&player, song, false);
+        play(&mut player, song, false);
         player.seek_to(Duration::from_secs_f32(elapsed));
     }
 
@@ -361,7 +361,7 @@ fn main() {
         if player.is_finished() && !songs.is_empty() {
             songs.down();
             if let Some(song) = songs.selected() {
-                play(&player, &song, true)
+                play(&mut player, &song, true)
             }
         }
 
@@ -503,12 +503,12 @@ fn main() {
                                 } else if index == playing && index == 0 {
                                     songs.select(Some(0));
                                     if let Some(song) = songs.selected() {
-                                        play(&player, &song, true)
+                                        play(&mut player, &song, true)
                                     }
                                 } else if index == playing && index == len {
                                     songs.select(Some(len - 1));
                                     if let Some(song) = songs.selected() {
-                                        play(&player, &song, true)
+                                        play(&mut player, &song, true)
                                     }
                                 } else if index < playing {
                                     songs.select(Some(playing - 1));
@@ -556,13 +556,13 @@ fn main() {
                 Event::Char('a') => {
                     songs.up();
                     if let Some(song) = songs.selected() {
-                        play(&player, &song, true)
+                        play(&mut player, &song, true)
                     }
                 }
                 Event::Char('d') => {
                     songs.down();
                     if let Some(song) = songs.selected() {
-                        play(&player, &song, true)
+                        play(&mut player, &song, true)
                     }
                 }
                 Event::Char('w') => {
@@ -611,7 +611,7 @@ fn main() {
                 Event::Enter if mode == Mode::Queue => {
                     if let Some(i) = queue.index() {
                         songs.select(Some(i));
-                        play(&player, &songs[i], true);
+                        play(&mut player, &songs[i], true);
                     }
                 }
                 Event::Enter if mode == Mode::Settings => {
@@ -663,7 +663,7 @@ fn main() {
             queue.set_index(0);
             songs.select(Some(0));
             if let Some(song) = songs.selected() {
-                play(&player, &song, true)
+                play(&mut player, &song, true)
             }
         }
 
