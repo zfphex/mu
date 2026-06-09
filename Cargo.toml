@@ -6,9 +6,10 @@ members = ["mu", "mu_core"]
 debug = true
 
 [profile.dist]
-inherits = "release"  
-opt-level = "z"       
-lto = true            
-strip = true  
-panic = "abort"    
-codegen-units = 1  
+inherits = "release"
+opt-level = "z"
+debug = false
+lto = true   
+strip = true
+panic = "abort"
+codegen-units = 1
