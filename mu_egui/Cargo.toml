@@ -14,3 +14,6 @@ zune-png = "0.5.2"
 
 mini = { git = "https://github.com/zfphex/mini", version = "0.1.0" }
 onmi = { git = "https://github.com/zfphex/onmi", version = "0.1.0" }
+
+[lints.cargo]
+non_kebab_case_bins = "allow"

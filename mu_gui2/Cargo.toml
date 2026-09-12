@@ -17,3 +17,6 @@ onmi = { git = "https://github.com/zfphex/onmi", version = "0.1.0" }
 rayon = "1.12.0"
 
 # onmi = { version = "0.1.0", path = "../../onmi", features = ["simd"] }
+
+[lints.cargo]
+non_kebab_case_bins = "allow"
