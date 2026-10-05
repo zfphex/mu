@@ -52,10 +52,7 @@ pub fn draw_rail(sidebar: &mut Sidebar, ui: &mut FrameContext) {
     );
 }
 
-pub fn draw_sidebar<'a, 'b: 'a>(
-    sidebar: &mut Sidebar<'b>,
-    ui: &mut FrameContext<'_, 'a>,
-) {
+pub fn draw_sidebar<'a, 'b: 'a>(sidebar: &mut Sidebar<'b>, ui: &mut FrameContext<'_, 'a>) {
     let sb = text().fg(TEXT).font_size(16);
     let state = ui.flow_down(
         flow()
@@ -200,17 +197,24 @@ pub fn draw_sidebar<'a, 'b: 'a>(
                             .width(alphabet.width)
                             .height(110),
                         180.0,
-                    )
-                    .stop(0.0, glow(0.0))
-                    .stop(0.21, glow(0.11))
-                    .stop(0.5, glow(0.30))
-                    .stop(0.79, glow(0.11))
-                    .stop(1.0, glow(0.0));
+                        &[
+                            (0.0, glow(0.0)),
+                            (0.21, glow(0.11)),
+                            (0.5, glow(0.30)),
+                            (0.79, glow(0.11)),
+                            (1.0, glow(0.0)),
+                        ],
+                    );
 
-                    ui.gradient(rect().x(alphabet.x).y(my - 70).width(1).height(140), 180.0)
-                        .stop(0.0, glow(0.0))
-                        .stop(0.5, rgba(199, 183, 240, (0.75 * fade * 255.0) as u8))
-                        .stop(1.0, glow(0.0));
+                    ui.gradient(
+                        rect().x(alphabet.x).y(my - 70).width(1).height(140),
+                        180.0,
+                        &[
+                            (0.0, glow(0.0)),
+                            (0.5, rgba(199, 183, 240, (0.75 * fade * 255.0) as u8)),
+                            (1.0, glow(0.0)),
+                        ],
+                    );
                 });
             }
             alphabet.x += 12;
