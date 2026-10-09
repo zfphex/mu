@@ -132,7 +132,6 @@ fn icon(ui: &mut FrameContext, kind: &str, style: RectStyle) -> State {
                     .border_thickness(u(2).max(1) as usize)
                     .radius(u(9).max(1) as usize)
                     .depth(depth);
-                //Draw the ring twice, clipped, so everything but the top right is covered.
                 ui.clipped(Rect::new(x, y, u(12), u(24)), |ui| ui.paint_rect(ring, stroke));
                 ui.clipped(Rect::new(x + u(12), y + u(9), u(12), u(15)), |ui| {
                     ui.paint_rect(ring, stroke)
@@ -200,9 +199,20 @@ fn spawn_load_artwork(targets: Vec<(usize, String)>) -> JoinHandle<Vec<(usize, A
     })
 }
 
+//TODO: I still haven't figured out how the queue should work.
+//I think playing something in the artist view should add the all the albums
+//to the queue. We will need to sync the queue and library back and forth.
+
+//TODO: There is no context menu.
+
+//TODO: There is no keyboard navigation or accesability support.
+
+//TODO: There is no settings or playlists.
+
 //TODO: Add tailwind style font size and padding builders.
 //Allow the user to customize them.
 //Currently keeping track of all the sizings is very difficult.
+
 fn main() {
     defer_results!();
 
