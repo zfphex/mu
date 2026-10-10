@@ -209,7 +209,8 @@ pub fn draw_sidebar<'a, 'b: 'a>(sidebar: &mut Sidebar<'b>, ui: &mut FrameContext
                     ui.gradient(
                         rect()
                             .x(alphabet.x)
-                            .y(my.saturating_sub(55))
+                            // Explicit pixels preserve negative coordinates above the window.
+                            .y(Size::Pixel(my.saturating_sub(55)))
                             .width(alphabet.width)
                             .height(110),
                         180.0,
@@ -223,7 +224,11 @@ pub fn draw_sidebar<'a, 'b: 'a>(sidebar: &mut Sidebar<'b>, ui: &mut FrameContext
                     );
 
                     ui.gradient(
-                        rect().x(alphabet.x).y(my - 70).width(1).height(140),
+                        rect()
+                            .x(alphabet.x)
+                            .y(Size::Pixel(my.saturating_sub(70)))
+                            .width(1)
+                            .height(140),
                         180.0,
                         &[
                             (0.0, glow(0.0)),
