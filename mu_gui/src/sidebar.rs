@@ -89,10 +89,7 @@ pub fn draw(
             );
 
             ui.place_right(
-                flow()
-                    .bounds(row.bounds)
-                    .padlr(10)
-                    .children_center(),
+                flow().bounds(row.bounds).padlr(10).children_center(),
                 |ui| {
                     ui.text(
                         icon,
@@ -156,38 +153,42 @@ pub fn draw(
     let selected = selected_artist.map(|s| s.to_string());
     let mut artist_click = None;
 
-    ui.scroll(flow().bounds(list_rect).bg(colors::PANEL), artist_scroll, |ui| {
-        let mut last_letter: Option<char> = None;
-        for name in artists {
-            let letter = name
-                .chars()
-                .next()
-                .map(|c| c.to_ascii_uppercase())
-                .unwrap_or('#');
-            if last_letter != Some(letter) {
-                last_letter = Some(letter);
-                ui.text(
-                    letter.to_string(),
-                    text()
-                        .fg(colors::TEXT_MUTED)
-                        .font_size(11)
-                        .padl(12)
-                        .padt(6)
-                        .padb(2)
-                        .fillw()
-                        .content(Alignment::Left)
-                        .bg(colors::PANEL),
-                );
+    ui.scroll(
+        flow().bounds(list_rect).bg(colors::PANEL),
+        artist_scroll,
+        |ui| {
+            let mut last_letter: Option<char> = None;
+            for name in artists {
+                let letter = name
+                    .chars()
+                    .next()
+                    .map(|c| c.to_ascii_uppercase())
+                    .unwrap_or('#');
+                if last_letter != Some(letter) {
+                    last_letter = Some(letter);
+                    ui.text(
+                        letter.to_string(),
+                        text()
+                            .fg(colors::TEXT_MUTED)
+                            .font_size(11)
+                            .padl(12)
+                            .padt(6)
+                            .padb(2)
+                            .fillw()
+                            .content(Alignment::Left)
+                            .bg(colors::PANEL),
+                    );
+                }
+                let active = selected.as_deref() == Some(name.as_str());
+                if ui
+                    .text(format!("  {name}"), row_style.is_selected(active))
+                    .clicked
+                {
+                    artist_click = Some(name.clone());
+                }
             }
-            let active = selected.as_deref() == Some(name.as_str());
-            if ui
-                .text(format!("  {name}"), row_style.is_selected(active))
-                .clicked
-            {
-                artist_click = Some(name.clone());
-            }
-        }
-    });
+        },
+    );
 
     if let Some(letter) = sticky {
         let pin = Rect::new(

@@ -6,7 +6,7 @@ pub struct Library<'a> {
     pub artist: &'a str,
     pub total_tracks: usize,
     pub playing_song: Option<SongId>,
-    pub selected_song: Option<SongId>,
+    pub selection: Option<(SongId, Rect)>,
     pub scroll: Scroll,
     pub update_playing: bool,
 }
@@ -16,6 +16,13 @@ pub fn draw_library<'a, 'b: 'a>(
     library: &mut Library<'b>,
     ui: &mut FrameContext<'_, 'a>,
 ) {
+    // Selection lasts only while its row owns focus.
+    if library
+        .selection
+        .is_some_and(|(_, bounds)| !ui.is_focused(bounds, Role::BUTTON))
+    {
+        library.selection = None;
+    }
     let artist_entry = db.artist_by_name(library.artist).unwrap();
     let total_albums = artist_entry.albums.len();
 
@@ -104,7 +111,8 @@ pub fn draw_library<'a, 'b: 'a>(
                             for (si, song) in songs.iter().enumerate() {
                                 let global_id = album.song_start + si;
                                 let playing = Some(global_id) == library.playing_song;
-                                let selected = Some(global_id) == library.selected_song;
+                                let selected =
+                                    library.selection.is_some_and(|(id, _)| id == global_id);
 
                                 let row = if playing {
                                     row.bg(ROW_SELECTED)
@@ -144,11 +152,22 @@ pub fn draw_library<'a, 'b: 'a>(
                                     ui.text(duration, s.fg(TEXT_MUTED).fillw().content_right());
                                 });
 
-                                if song_row.clicked {
-                                    library.selected_song = Some(global_id);
+                                let song_row = semantic_row(ui, song_row, &song.title, selected);
+                                if song_row.activated {
+                                    library.selection = Some((global_id, song_row.bounds));
                                 }
 
-                                if song_row.double_clicked {
+                                if selected {
+                                    if song_row.focused {
+                                        library.selection = Some((global_id, song_row.bounds));
+                                    } else {
+                                        library.selection = None;
+                                    }
+                                }
+
+                                if song_row.double_clicked
+                                    || (song_row.focused && ui.window.pressed(Key::Enter))
+                                {
                                     library.playing_song = Some(global_id);
                                     library.update_playing = true;
                                 }

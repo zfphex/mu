@@ -83,7 +83,7 @@ pub fn draw_controls<'a>(
                         if controls.playing { "Pause" } else { "Play" },
                         btn.bg(TEXT).hover(PLAY_HOVER).fg(SIDEBAR).radius(16),
                     )
-                    .clicked
+                    .activated
                     {
                         if controls.playing {
                             player.pause();

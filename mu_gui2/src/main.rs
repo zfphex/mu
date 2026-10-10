@@ -81,7 +81,8 @@ const ALPHABET: &[&str] = &[
 ];
 
 fn icon(ui: &mut FrameContext, kind: &str, style: RectStyle) -> State {
-    ui.widget(24, 24, &style.layout, &style.paint, |ui, r, _, depth| {
+    let role = style.role.unwrap_or(Role::BUTTON);
+    let state = ui.widget_with_role(24, 24, &style.layout, &style.paint, role, style.hint.unwrap_or(kind), "", |ui, r, _, depth| {
         let fill = style.paint.fg.unwrap_or(white());
         let palette = [fill, with_alpha(fill, 110), SIDEBAR];
         let u = |v: i32| v * r.width / 24;
@@ -140,7 +141,53 @@ fn icon(ui: &mut FrameContext, kind: &str, style: RectStyle) -> State {
             }
             _ => {}
         }
-    })
+    });
+    if role.is_focusable() {
+        focus_ring(ui, &state);
+    }
+    state
+}
+
+fn focus_ring(ui: &mut FrameContext, state: &State) {
+    if state.focused && ui.state.accessability_state.keyboard_nav_active {
+        ui.paint_rect(
+            state.bounds,
+            rect().border(ACCENT).border_thickness(2).radius(6),
+        );
+    }
+}
+
+//TODO: We need a better way of doing this...
+fn semantic_row(ui: &mut FrameContext, mut state: State, label: &str, selected: bool) -> State {
+    let role = Role::BUTTON;
+    let mut flags = if selected {
+        StateFlags::SELECTED
+    } else {
+        StateFlags::NONE
+    };
+    if state.clicked {
+        let bounds = state.bounds;
+        ui.set_focus_cursor(Some(SpatialCursor::new(
+            (
+                bounds.x as f32 + bounds.width as f32 / 2.0,
+                bounds.y as f32 + bounds.height as f32 / 2.0,
+            ),
+            role,
+            hash32(label),
+            ui.state.accessability_state.current_nodes.len(),
+            ui.current_frame().depth,
+        )));
+        state.focused = true;
+    }
+    if state.focused {
+        flags |= StateFlags::FOCUSED;
+    }
+    if state.hovered {
+        flags |= StateFlags::HOVERED;
+    }
+    ui.emit_semantic(state.bounds, role, label, "", flags);
+    focus_ring(ui, &state);
+    state
 }
 
 fn time<'a>(ui: &mut FrameContext<'_, 'a>, t: f32) -> &'a str {
@@ -205,7 +252,8 @@ fn spawn_load_artwork(targets: Vec<(usize, String)>) -> JoinHandle<Vec<(usize, A
 
 //TODO: There is no context menu.
 
-//TODO: There is no keyboard navigation or accesability support.
+//TODO: Keyboard support is not very good. Scroll views don't scroll.
+//TODO: The toggle sidebar button gets spacial priotority when it probably shouldn't...
 
 //TODO: There is no settings or playlists.
 
@@ -251,6 +299,8 @@ fn main() {
     });
 
     let mut ui = ui("mu", 1200, 780);
+    ui.space_activates_controls = false;
+    ui.tab_navigation = false;
     ui.default_font_size = 16;
     // ui.debug_damage = true;
 
@@ -288,7 +338,7 @@ fn main() {
         total_tracks: initial_songs.len(),
         artist: "Duster",
         playing_song: None,
-        selected_song: None,
+        selection: None,
         update_playing: false,
     };
 
@@ -324,9 +374,8 @@ fn main() {
                 Key::Char('2') => sidebar.selected_mode = "Queue",
                 Key::Char('3') => sidebar.selected_mode = "Playlist",
                 Key::Char('4') => sidebar.selected_mode = "Settings",
+                // Tab is reserved for toggling the sidebar, not focus traversal.
                 Key::Tab => sidebar.active = !sidebar.active,
-                //TODO: Should only trigger when library is focused.
-                //Sidebar jumps on alphabet key press.
                 Key::Char('W') => {
                     player.volume_up();
                     controls.volume = player.volume();
@@ -405,7 +454,7 @@ fn main() {
             sidebar.update_library = false;
             sidebar.selected_mode = "Library";
             library.playing_song = None;
-            library.selected_song = None;
+            library.selection = None;
 
             let artist = sidebar.selected_artist;
             let artist_entry = db.artist_by_name(artist).unwrap();
@@ -456,6 +505,9 @@ fn main() {
             queue.bounds = body;
             controls.bounds = con;
 
+            if sidebar.selected_mode != "Library" {
+                library.selection = None;
+            }
             match sidebar.selected_mode {
                 "Library" => draw_library(&db, &mut library, ui),
                 "Queue" => draw_queue(ui, &mut queue, &db),
@@ -465,6 +517,12 @@ fn main() {
             }
 
             draw_controls(&mut controls, &mut player, ui, &db);
+
+            // Space is reserved for playback; Enter activates the focused control.
+            if ui.window.pressed(Key::Space) {
+                player.toggle_playback();
+                controls.playing = !controls.playing;
+            }
         });
     }
 }

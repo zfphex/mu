@@ -206,10 +206,7 @@ fn draw_seekbar(
         return;
     }
 
-    let time = text()
-        .fg(colors::TEXT_DIM)
-        .font_size(11)
-        .fill();
+    let time = text().fg(colors::TEXT_DIM).font_size(11).fill();
     ui.place_down(flow().bounds(left), |ui| {
         ui.text(format_time(display_elapsed), time);
     });

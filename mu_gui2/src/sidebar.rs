@@ -28,9 +28,10 @@ pub fn draw_rail(sidebar: &mut Sidebar, ui: &mut FrameContext) {
                 .pad(7)
                 .radius(8)
                 .hover(ROW_HOVER)
-                .selected(ROW_SELECTED);
+                .selected(ROW_SELECTED)
+                .focusable(false);
 
-            if icon(ui, "Panel", btn.fg(TEXT_TERTIARY)).clicked {
+            if icon(ui, "Panel", btn.fg(TEXT_TERTIARY).hint("Expand sidebar")).clicked {
                 sidebar.active = true;
             }
 
@@ -77,7 +78,15 @@ pub fn draw_sidebar<'a, 'b: 'a>(sidebar: &mut Sidebar<'b>, ui: &mut FrameContext
                         .radius(6)
                         .hover(ROW_HOVER)
                         .fg(TEXT_TERTIARY);
-                    if icon(ui, "Panel", btn.fg(TEXT_TERTIARY)).clicked {
+                    if icon(
+                        ui,
+                        "Panel",
+                        btn.fg(TEXT_TERTIARY)
+                            .hint("Collapse sidebar")
+                            .focusable(false),
+                    )
+                    .clicked
+                    {
                         sidebar.active = false;
                     }
                 },
@@ -96,13 +105,12 @@ pub fn draw_sidebar<'a, 'b: 'a>(sidebar: &mut Sidebar<'b>, ui: &mut FrameContext
                         .fillw()
                         .content_right();
 
-                    if ui
-                        .flow_right(sel, |ui| {
-                            ui.text(t, text);
-                            ui.text(i, ntext);
-                        })
-                        .clicked
-                    {
+                    let state = ui.flow_right(sel, |ui| {
+                        ui.text(t, text);
+                        ui.text(i, ntext);
+                    });
+                    // Navigation modes use shortcuts; this row only handles mouse clicks.
+                    if state.clicked {
                         sidebar.selected_mode = t;
                     }
                 };
@@ -160,7 +168,15 @@ pub fn draw_sidebar<'a, 'b: 'a>(sidebar: &mut Sidebar<'b>, ui: &mut FrameContext
                         }
                         let sel = artist.as_str() == selected_artist;
                         let state = ui.text(artist, if sel { selected_text } else { text });
-                        if state.clicked {
+                        focus_ring(ui, &state);
+                        if state.focused {
+                            for key in ui.window.pressed_keys() {
+                                if let Key::Char(c) = key {
+                                    sidebar.jump_to_letter = Some(*c);
+                                }
+                            }
+                        }
+                        if state.activated {
                             sidebar.selected_artist = artist;
                             sidebar.update_library = true;
                         }
@@ -241,13 +257,4 @@ pub fn draw_sidebar<'a, 'b: 'a>(sidebar: &mut Sidebar<'b>, ui: &mut FrameContext
             });
         },
     );
-
-    if state.hovered {
-        for key in ui.window.pressed_keys() {
-            match key {
-                Key::Char(c) => sidebar.jump_to_letter = Some(*c),
-                _ => {}
-            }
-        }
-    }
 }

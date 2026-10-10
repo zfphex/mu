@@ -1,5 +1,5 @@
-use mu_core::vdb::Database;
 use mu_core::Song;
+use mu_core::vdb::Database;
 
 pub fn find_song(
     db: &Database,

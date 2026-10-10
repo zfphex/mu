@@ -68,7 +68,10 @@ impl PathSelection {
             return;
         };
         let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
-        self.paths = ordered[lo..=hi].iter().map(|s| s.as_ref().to_string()).collect();
+        self.paths = ordered[lo..=hi]
+            .iter()
+            .map(|s| s.as_ref().to_string())
+            .collect();
         // Keep original anchor so further Shift-clicks extend from it.
         self.anchor = Some(anchor);
     }
